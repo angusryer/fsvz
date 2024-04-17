@@ -1,0 +1,27 @@
+{
+  "name": "fsviz",
+  "version": "1.0.0",
+  "description": "A CLI utility to generate an ascii visualization of directory structures and the files therein.",
+  "main": "index.js",
+  "bin": {
+    "fsviz": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/angusryer/fsviz.git"
+  },
+  "keywords": [
+    "fs",
+    "filesystem",
+    "cli"
+  ],
+  "author": "Angus W Ryer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/angusryer/fsviz/issues"
+  },
+  "homepage": "https://github.com/angusryer/fsviz#readme"
+}
