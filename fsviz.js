@@ -53,7 +53,7 @@ function getDirectoryStructure(dir, level = 0, prefix = "") {
     const isLast = index === files.length - 1;
     let linePrefix = prefix + (fancy ? (isLast ? "└── " : "├── ") : "- ");
 
-    if (dirsOnly && stats.isDirectory()) {
+    if (dirsOnly && !stats.isDirectory()) {
       return;
     }
 
