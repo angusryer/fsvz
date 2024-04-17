@@ -9,10 +9,17 @@ const linkColor = "\x1b[36m"; // Cyan
 
 const args = process.argv.slice(2);
 const helpFlagIndex = args.findIndex((arg) => arg === "--help" || arg === "-h");
+const versionFlagIndex = args.findIndex((arg) => arg === "--version" || arg === "-v");
 const fancyFlagIndex = args.findIndex((arg) => arg === "--fancy" || arg === "-f");
 const dirsOnlyFlagIndex = args.findIndex((arg) => arg === "--dirs-only" || arg === "-d");
 const ignorePatternIndex = args.findIndex((arg) => arg.startsWith("--ignore="));
 const toFileFlagIndex = args.findIndex((arg) => arg === "--to-file" || arg === "-o");
+
+if (versionFlagIndex !== -1) {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
+  console.log(packageJson.version);
+  process.exit();
+}
 
 if (helpFlagIndex !== -1) {
   console.log("Usage: node index.js [options] [--ignore=PATTERN]");
