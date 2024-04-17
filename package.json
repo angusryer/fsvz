@@ -1,6 +1,6 @@
 {
   "name": "fsviz",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A CLI utility to generate an ascii visualization of directory structures and the files therein.",
   "main": "fsviz.js",
   "bin": {
