@@ -1,13 +1,13 @@
 {
   "name": "fsviz",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A CLI utility to generate an ascii visualization of directory structures and the files therein.",
-  "main": "index.js",
+  "main": "fsviz.js",
   "bin": {
-    "fsviz": "./index.js"
+    "fsviz": "./fsviz.js"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node fsviz.js"
   },
   "repository": {
     "type": "git",

@@ -9,20 +9,28 @@ const linkColor = "\x1b[36m"; // Cyan
 
 const args = process.argv.slice(2);
 const helpFlagIndex = args.findIndex((arg) => arg === "--help" || arg === "-h");
-const fancyFlagIndex = args.findIndex((arg) => arg === "--fancy");
+const fancyFlagIndex = args.findIndex((arg) => arg === "--fancy" || arg === "-f");
+const dirsOnlyFlagIndex = args.findIndex((arg) => arg === "--dirs-only" || arg === "-d");
 const ignorePatternIndex = args.findIndex((arg) => arg.startsWith("--ignore="));
+const toFileFlagIndex = args.findIndex((arg) => arg === "--to-file" || arg === "-o");
 
 if (helpFlagIndex !== -1) {
-  console.log("Usage: node index.js [--fancy] [--ignore=PATTERN]");
-  console.log("  --fancy             Output in a stylized markdown format.");
-  console.log("  --ignore=PATTERN    Glob pattern to ignore files or directories.");
-  console.log("  -h, --help          Print this help message and exit.");
+  console.log("Usage: node index.js [options] [--ignore=PATTERN]");
+  console.log("  --fancy, -f            Output in a stylized markdown format.");
+  console.log("  --dirs-only, -d        Output directories only.");
+  console.log("  --ignore=PATTERN       Glob pattern to ignore files or directories.");
+  console.log(
+    "  --to-file, -o          Output to file instead of the console. The file name will be `dirtree.md`. This will be overwritten if it already exists."
+  );
+  console.log("  --help, -h             Print this help message and exit.");
   process.exit();
 }
 
 const fancy = fancyFlagIndex !== -1;
 const ignorePattern =
   ignorePatternIndex !== -1 ? new RegExp(args[ignorePatternIndex].split("=")[1]) : null;
+const dirsOnly = dirsOnlyFlagIndex !== -1;
+const toFile = toFileFlagIndex !== -1;
 
 function getDirectoryStructure(dir, level = 0, prefix = "") {
   let result = [];
@@ -37,6 +45,10 @@ function getDirectoryStructure(dir, level = 0, prefix = "") {
     const stats = fs.lstatSync(filePath);
     const isLast = index === files.length - 1;
     let linePrefix = prefix + (fancy ? (isLast ? "└── " : "├── ") : "- ");
+
+    if (dirsOnly && stats.isDirectory()) {
+      return;
+    }
 
     if (stats.isSymbolicLink()) {
       result.push(`${linePrefix}${linkColor}${file}${resetColor} [symbolic link]`);
@@ -58,4 +70,10 @@ function getDirectoryStructure(dir, level = 0, prefix = "") {
 }
 
 const output = getDirectoryStructure(".").join("\n");
-console.log(output);
+
+if (toFile) {
+  const fileName = "dirtree.md";
+  fs.writeFileSync(fileName, output);
+} else {
+  console.log(output);
+}
