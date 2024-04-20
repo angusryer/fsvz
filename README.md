@@ -6,7 +6,7 @@ fsviz is a lightweight, dependency-free command-line tool built with Node.js for
 - add screenshot or a gif of it working in the README
 - add tests!
 - fancy option by default and change README and --help to make this clear
-- -to-file / -o should take file arg
+- -to-file / -o should take file arg and show final path in console once written
 - add JSON and CSV output
 - Ensure no special characters are in the output files
 - wrap code in function and export instead of running directly. Add to README
