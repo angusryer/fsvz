@@ -2,6 +2,15 @@
 
 fsviz is a lightweight, dependency-free command-line tool built with Node.js for generating and displaying the directory structure of your current folder. It's designed to be simple and easy to use.
 
+## TODOs
+- add screenshot or a gif of it working in the README
+- add tests!
+- fancy option by default and change README and --help to make this clear
+- -to-file / -o should take file arg
+- add JSON and CSV output
+- Ensure no special characters are in the output files
+- wrap code in function and export instead of running directly. Add to README
+
 ## Features
 
 - **No External Dependencies**: Built purely with Node.js built-in modules.
