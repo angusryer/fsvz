@@ -4,7 +4,7 @@
   "description": "A CLI utility to generate an ascii visualization of directory structures and the files therein.",
   "main": "fsviz.js",
   "bin": {
-    "fsviz": "./fsviz.js"
+    "fsviz": "fsviz.js"
   },
   "scripts": {
     "start": "node fsviz.js"
