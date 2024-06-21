@@ -16,8 +16,12 @@ const ignorePatternIndex = args.findIndex((arg) => arg.startsWith("--ignore="));
 const toFileFlagIndex = args.findIndex((arg) => arg === "--to-file" || arg === "-o");
 
 if (versionFlagIndex !== -1) {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
-  console.log(packageJson.version);
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
+    console.log(packageJson.version);
+  } catch (error) {
+    console.error("Error reading version:", error.message);
+  }
   process.exit();
 }
 
@@ -41,7 +45,13 @@ const toFile = toFileFlagIndex !== -1;
 
 function getDirectoryStructure(dir, level = 0, prefix = "") {
   let result = [];
-  const files = fs.readdirSync(dir).sort();
+  let files;
+  try {
+    files = fs.readdirSync(dir).sort();
+  } catch (error) {
+    console.error(`Error reading directory ${dir}: ${error.message}`);
+    return result;
+  }
 
   files.forEach((file, index) => {
     if (file === "." || file === ".." || (ignorePattern && ignorePattern.test(file))) {
@@ -49,7 +59,14 @@ function getDirectoryStructure(dir, level = 0, prefix = "") {
     }
 
     const filePath = path.join(dir, file);
-    const stats = fs.lstatSync(filePath);
+    let stats;
+    try {
+      stats = fs.lstatSync(filePath);
+    } catch (error) {
+      console.error(`Error reading file ${filePath}: ${error.message}`);
+      return;
+    }
+
     const isLast = index === files.length - 1;
     let linePrefix = prefix + (fancy ? (isLast ? "└── " : "├── ") : "- ");
 
@@ -58,7 +75,13 @@ function getDirectoryStructure(dir, level = 0, prefix = "") {
     }
 
     if (stats.isSymbolicLink()) {
-      result.push(`${linePrefix}${linkColor}${file}${resetColor} [symbolic link]`);
+      let targetPath;
+      try {
+        targetPath = fs.readlinkSync(filePath);
+      } catch (error) {
+        targetPath = "unresolved";
+      }
+      result.push(`${linePrefix}${linkColor}${file}${resetColor} [symbolic link -> ${targetPath}]`);
     } else if (stats.isDirectory()) {
       result.push(`${linePrefix}${dirColor}${file}${resetColor}/`);
       result.push(
@@ -80,7 +103,12 @@ const output = getDirectoryStructure(".").join("\n");
 
 if (toFile) {
   const fileName = "dirtree.md";
-  fs.writeFileSync(fileName, output);
+  try {
+    fs.writeFileSync(fileName, output);
+    console.log(`Output written to ${fileName}`);
+  } catch (error) {
+    console.error(`Error writing to file ${fileName}: ${error.message}`);
+  }
 } else {
   console.log(output);
 }
