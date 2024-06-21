@@ -2,7 +2,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const { parse } = require("json2csv");
 
 const dirColor = "\x1b[34m"; // Blue
 const resetColor = "\x1b[0m"; // Reset to default terminal color
@@ -30,7 +29,7 @@ function main() {
   }
 
   if (helpFlagIndex !== -1) {
-    console.log("Usage: node index.js [options] [--ignore=PATTERN]");
+    console.log("Usage: fsviz [options] [--ignore=PATTERN]");
     console.log("  --fancy, -f            Output in a stylized markdown format (default).");
     console.log("  --dirs-only, -d        Output directories only.");
     console.log("  --ignore=PATTERN       Glob pattern to ignore files or directories.");
@@ -124,13 +123,7 @@ function main() {
   if (jsonOutput) {
     output = JSON.stringify(structure, null, 2);
   } else if (csvOutput) {
-    const fields = ["name", "type", "target"];
-    try {
-      output = parse(structure, { fields });
-    } catch (err) {
-      console.error(err);
-      process.exit(1);
-    }
+    output = convertToCSV(structure);
   } else {
     output = structure.map((item) => item.display).join("\n");
   }
@@ -147,6 +140,18 @@ function main() {
   }
 }
 
+// Convert the directory structure to CSV format
+function convertToCSV(data) {
+  const fields = ["name", "type", "target"];
+  const replacer = (_key, value) => (value === null || value === undefined ? "" : value);
+  const csv = data.map((row) =>
+    fields.map((fieldName) => JSON.stringify(row[fieldName], replacer)).join(",")
+  );
+  csv.unshift(fields.join(","));
+  return csv.join("\n");
+}
+
+// Run the main function if this file is executed directly
 if (require.main === module) {
   main();
 } else {
