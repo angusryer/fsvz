@@ -1,6 +1,6 @@
-# fsviz - Directory Structure CLI Tool
+# fsvz - Directory Structure CLI Tool
 
-fsviz is a lightweight, dependency-free command-line tool built with Node.js for generating and displaying directory structures. It's designed to be simple and easy to use.
+fsvz is a lightweight, dependency-free command-line tool built with Node.js for generating and displaying directory structures. It's designed to be simple and easy to use.
 
 ## TODOs
 
@@ -15,24 +15,24 @@ fsviz is a lightweight, dependency-free command-line tool built with Node.js for
 
 ## Installation
 
-You can install fsviz globally using npm by running the following command:
+You can install fsvz globally using npm by running the following command:
 
 ```bash
-npm install -g fsviz
+npm install -g fsvz
 ```
 
-This allows you to use the `fsviz` command from anywhere on your system.
+This allows you to use the `fsvz` command from anywhere on your system.
 
 ## Usage
 
-After installation, you can use the `fsviz` command in your terminal. Here are some ways to use this tool:
+After installation, you can use the `fsvz` command in your terminal. Here are some ways to use this tool:
 
 ### Basic Usage
 
 To display the directory structure of the current directory, simply type:
 
 ```bash
-fsviz
+fsvz
 ```
 
 ### Fancy Output
@@ -40,7 +40,7 @@ fsviz
 For a more graphical tree-like structure, use the `--fancy` option:
 
 ```bash
-fsviz --fancy
+fsvz --fancy
 ```
 
 ### Ignoring Patterns
@@ -48,19 +48,19 @@ fsviz --fancy
 To ignore files or directories that match glob patterns, use the `--ignore` or `-i` options. For example, to ignore all node_modules directories, you can run:
 
 ```bash
-fsviz --ignore="node_modules"
+fsvz --ignore="node_modules"
 ```
 
 Or to ignore all files with the `.js` extension, you can run:
 
 ```bash
-fsviz -i "*.js"
+fsvz -i "*.js"
 ```
 
 Or to ignore multiple patterns, you can separate them with commas or standard glob pattern syntax:
 
 ```bash
-fsviz --ignore="node_modules,*.js"
+fsvz --ignore="node_modules,*.js"
 fsivz -i "{node_modules|*.js}"
 ```
 
@@ -69,7 +69,7 @@ fsivz -i "{node_modules|*.js}"
 For more information on all available options, use the help command:
 
 ```bash
-fsviz --help
+fsvz --help
 ```
 
 ## Example Output
@@ -77,7 +77,7 @@ fsviz --help
 Here is an example of what the default output might look like:
 
 ```
-fsviz-project
+fsvz-project
 ├── node_modules
 │   └── (contents ignored)
 ├── src
@@ -93,4 +93,4 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## License
 
-fsviz is [MIT licensed](./LICENSE).
+fsvz is [MIT licensed](./LICENSE).

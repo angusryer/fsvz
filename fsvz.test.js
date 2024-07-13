@@ -1,5 +1,5 @@
 describe("globToRegex", () => {
-  const { globToRegex } = require("./fsviz");
+  const { globToRegex } = require("./fsvz");
 
   test("converts simple glob to regex", () => {
     const regex = globToRegex("*.js");
@@ -79,7 +79,7 @@ describe("globToRegex", () => {
 });
 
 describe("getOptions", () => {
-  const getOptions = require("./fsviz").getOptions;
+  const getOptions = require("./fsvz").getOptions;
 
   test("parses simple flags", () => {
     const options = getOptions(["-s", "-d"]);
