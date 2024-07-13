@@ -1,10 +1,10 @@
 {
   "name": "fsvz",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A CLI utility to generate a console visualization, CSV or JSON output of a specified directory structure and the files therein.",
   "main": "fsvz.js",
   "bin": {
-    "fsviz": "fsvz.js"
+    "fsvz": "fsvz.js"
   },
   "scripts": {
     "start": "node fsvz.js",
