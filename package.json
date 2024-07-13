@@ -1,13 +1,14 @@
 {
   "name": "fsviz",
   "version": "1.0.3",
-  "description": "A CLI utility to generate an ascii visualization of directory structures and the files therein.",
+  "description": "A CLI utility to generate a console visualization, CSV or JSON output of a specified directory structure and the files therein.",
   "main": "fsviz.js",
   "bin": {
     "fsviz": "fsviz.js"
   },
   "scripts": {
-    "start": "node fsviz.js"
+    "start": "node fsviz.js",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -23,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/angusryer/fsviz/issues"
   },
-  "homepage": "https://github.com/angusryer/fsviz#readme"
+  "homepage": "https://github.com/angusryer/fsviz#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }

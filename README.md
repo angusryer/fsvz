@@ -1,21 +1,17 @@
 # fsviz - Directory Structure CLI Tool
 
-fsviz is a lightweight, dependency-free command-line tool built with Node.js for generating and displaying the directory structure of your current folder. It's designed to be simple and easy to use.
+fsviz is a lightweight, dependency-free command-line tool built with Node.js for generating and displaying directory structures. It's designed to be simple and easy to use.
 
 ## TODOs
+
 - add screenshot or a gif of it working in the README
-- add tests!
-- fancy option by default and change README and --help to make this clear
-- -to-file / -o should take file arg and show final path in console once written
-- add JSON and CSV output
-- Ensure no special characters are in the output files
-- wrap code in function and export instead of running directly. Add to README
 
 ## Features
 
 - **No External Dependencies**: Built purely with Node.js built-in modules.
-- **Customizable Output**: Choose between simple and fancy tree-like outputs.
+- **Customizable Output**: Choose between simple and fancy tree-like outputs. Fancy is default.
 - **Pattern Ignoring**: Ability to ignore files and directories based on a provided glob pattern.
+- **JSON & CSV Output**: Export the directory/file structure as JSON or CSV.
 
 ## Installation
 
@@ -49,10 +45,23 @@ fsviz --fancy
 
 ### Ignoring Patterns
 
-To ignore files or directories that match a certain pattern, use the `--ignore` option. For example, to ignore all node_modules directories, you can run:
+To ignore files or directories that match glob patterns, use the `--ignore` or `-i` options. For example, to ignore all node_modules directories, you can run:
 
 ```bash
 fsviz --ignore="node_modules"
+```
+
+Or to ignore all files with the `.js` extension, you can run:
+
+```bash
+fsviz -i "*.js"
+```
+
+Or to ignore multiple patterns, you can separate them with commas or standard glob pattern syntax:
+
+```bash
+fsviz --ignore="node_modules,*.js"
+fsivz -i "{node_modules|*.js}"
 ```
 
 ### Help
@@ -65,7 +74,7 @@ fsviz --help
 
 ## Example Output
 
-Here is an example of what the fancy output might look like:
+Here is an example of what the default output might look like:
 
 ```
 fsviz-project
