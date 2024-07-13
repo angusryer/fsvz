@@ -35,12 +35,27 @@ To display the directory structure of the current directory, simply type:
 fsvz
 ```
 
-### Fancy Output
+### Fancy and Simple Outputs to the CLI
 
-For a more graphical tree-like structure, use the `--fancy` option:
+For an output that uses dashes instead of an ASCII tree-like structure, use the `--simple` or `-s` option:
 
 ```bash
-fsvz --fancy
+fsvz --simple
+```
+
+### Output to JSON or CSV, or to a File in "raw" format
+
+To output the directory structure as JSON or CSV, use the `--json` or `--csv` options:
+
+```bash
+fsvz --json mytree.json # outputs the tree structure to a JSON file. You can also use the -j shorthand.
+fsvz --csv mytree.csv # file extension is optional and automatically added if not provided
+```
+
+To output the raw tree structure to a file, use the `--raw` option:
+
+```bash
+fszv --raw mytree.txt # outputs the raw tree structure to a file, just as it would be displayed in the terminal
 ```
 
 ### Ignoring Patterns
@@ -61,7 +76,7 @@ Or to ignore multiple patterns, you can separate them with commas or standard gl
 
 ```bash
 fsvz --ignore="node_modules,*.js"
-fsivz -i "{node_modules|*.js}"
+fsvz -i "{node_modules|*.js}"
 ```
 
 ### Help

@@ -7,7 +7,7 @@
     "fsviz": "fsvz.js"
   },
   "scripts": {
-    "start": "node fsviz.js",
+    "start": "node fsvz.js",
     "test": "jest"
   },
   "repository": {
