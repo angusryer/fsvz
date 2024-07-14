@@ -119,3 +119,100 @@ describe("getOptions", () => {
     exitSpy.mockRestore();
   });
 });
+
+describe("getDirectoryStructure", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const tmpDir = path.join(__dirname, "tmp");
+  const { getDirectoryStructure } = require("./fsvz");
+
+  beforeAll(() => {
+    // Create a temporary directory structure
+    fs.mkdirSync(path.join(tmpDir, "dir"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, "dir", "file1.txt"), "");
+    fs.writeFileSync(path.join(tmpDir, "dir", "file2.txt"), "");
+    fs.mkdirSync(path.join(tmpDir, "dir", "subdir"), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, "dir", "subdir2"), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, "dir", "subdir2", "file3.txt"), "");
+    fs.symlinkSync(path.join(tmpDir, "target"), path.join(tmpDir, "dir", "symlink"));
+  });
+
+  afterAll(() => {
+    // Remove the temporary directory
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  test("returns an empty array for an empty directory", () => {
+    fs.mkdirSync(path.join(tmpDir, "emptydir"), { recursive: true });
+    const structure = getDirectoryStructure(path.join(tmpDir, "emptydir"), {});
+    expect(structure).toEqual([]);
+    fs.rmdirSync(path.join(tmpDir, "emptydir"));
+  });
+
+  test("returns the correct structure for a directory with files and subdirectories", () => {
+    const structure = getDirectoryStructure(path.join(tmpDir, "dir"), {});
+
+    const expectedStructure = [
+      {
+        name: "file1.txt",
+        type: "file",
+      },
+      {
+        name: "file2.txt",
+        type: "file",
+      },
+      {
+        name: "subdir",
+        type: "directory",
+        children: [],
+      },
+      {
+        name: "subdir2",
+        type: "directory",
+        children: [
+          {
+            name: "file3.txt",
+            type: "file",
+          },
+        ],
+      },
+      {
+        name: "symlink",
+        type: "symbolic link",
+        target: path.join(tmpDir, "target"),
+      },
+    ];
+
+    expect(structure).toMatchObject(expectedStructure);
+  });
+
+  test("excludes files when 'dirsOnly' option is true", () => {
+    const options = { dirsOnly: true };
+    const structure = getDirectoryStructure(path.join(tmpDir, "dir"), options);
+    const expectedStructure = [
+      { name: "subdir", type: "directory" },
+      { name: "subdir2", type: "directory" },
+    ];
+
+    expectedStructure.forEach((expectedItem) => {
+      const item = structure.find(
+        (i) => i.name === expectedItem.name && i.type === expectedItem.type
+      );
+      expect(item).toMatchObject(expectedItem);
+    });
+  });
+
+  test("handles symbolic links correctly", () => {
+    const structure = getDirectoryStructure(path.join(tmpDir, "dir"), {});
+    const expectedItem = {
+      name: "symlink",
+      type: "symbolic link",
+      target: path.join(tmpDir, "target"),
+    };
+
+    const item = structure.find(
+      (i) => i.name === expectedItem.name && i.type === expectedItem.type
+    );
+    expect(item).toMatchObject(expectedItem);
+  });
+});

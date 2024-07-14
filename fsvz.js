@@ -222,75 +222,134 @@ function convertToCSV(data) {
   return csv.join("\n");
 }
 
-function getDirectoryStructure(dir, options, level = 0, prefix = "") {
+function formatStructure(structure, options) {
+  const formatItem = (item, prefix) => {
+    let linePrefix = options.simple ? "- " : prefix;
+    switch (item.type) {
+      case "directory":
+        return `${linePrefix}${dirColor}${item.name}${resetColor}/`;
+      case "file":
+        return `${linePrefix}${item.name}`;
+      case "symbolic link":
+        return `${linePrefix}${linkColor}${item.name}${resetColor} [symbolic link -> ${item.target}]`;
+      default:
+        return `${linePrefix}${item.name}`;
+    }
+  };
+
   let result = [];
-  let files;
-  try {
-    files = fs.readdirSync(dir).sort();
-  } catch (error) {
-    console.error(`Error reading directory ${dir}: ${error.message}`);
-    return result;
+  let stack = [{ items: structure, prefix: "", level: 0 }];
+
+  while (stack.length > 0) {
+    let { items, prefix, level } = stack.pop();
+
+    items.forEach((item, index) => {
+      const isLast = index === items.length - 1;
+      const lastSymbol = isLast ? "└── " : "├── ";
+      result.push(formatItem(item, prefix + (options.simple ? "- " : lastSymbol)));
+
+      if (item.type === "directory" && item.children) {
+        const newPrefix = isLast ? "    " : "│   ";
+        stack.push({
+          items: item.children,
+          prefix: prefix + newPrefix,
+          level: level + 1,
+        });
+      }
+    });
   }
 
-  files.forEach((file, index) => {
-    // Skip the current and parent directory, and any files that match the ignore pattern provided
-    if (file === "." || file === ".." || options.ignorePattern?.test(file)) return;
+  return result.join("\n");
+}
 
-    const filePath = path.join(dir, file);
+function flattenStructure(structure) {
+  let result = [];
+  let stack = [...structure];
 
-    // Get the file stats (symlink, directory, file)
-    let stats;
-    try {
-      stats = fs.lstatSync(filePath);
-    } catch (error) {
-      console.error(`Error reading file ${filePath}: ${error.message}`);
-      return;
+  while (stack.length > 0) {
+    let item = stack.pop();
+    result.push(item);
+    if (item.type === "directory" && item.children) {
+      stack.push(...item.children);
+    }
+  }
+
+  return result;
+}
+
+function getDirectoryStructure(rootDir, options, maxDepth = 10) {
+  let result = [];
+  let stack = [{ dir: rootDir, level: 0 }];
+  let visitedDirs = new Set();
+
+  while (stack.length > 0) {
+    let { dir, level } = stack.pop();
+
+    if (visitedDirs.has(dir)) {
+      continue;
+    }
+    visitedDirs.add(dir);
+
+    if (level > maxDepth) {
+      continue;
     }
 
-    const isLast = index === files.length - 1;
-    const lastSymbol = isLast ? "└── " : "├── "; // ASCII lines!
+    let files;
+    try {
+      if (!fs.existsSync(dir)) {
+        continue;
+      }
+      files = fs.readdirSync(dir).sort();
+    } catch (error) {
+      console.error(`Error reading directory ${dir}: ${error.message}`);
+      continue;
+    }
 
-    let linePrefix = prefix + (options.simple ? "- " : lastSymbol); // default to ASCII lines
+    let children = [];
+    files.forEach((file) => {
+      if (file === "." || file === ".." || options.ignorePattern?.test(file)) return;
 
-    if (options.dirsOnly && !stats.isDirectory()) return;
+      const filePath = path.join(dir, file);
+      let stats;
 
-    if (stats.isSymbolicLink()) {
-      let targetPath;
       try {
-        targetPath = fs.readlinkSync(filePath);
+        stats = fs.lstatSync(filePath);
       } catch (error) {
-        targetPath = "unresolved";
+        console.error(`Error reading file ${filePath}: ${error.message}`);
+        return;
       }
 
-      result.push({
-        name: file,
-        type: "symbolic link",
-        target: targetPath,
-        display: `${linePrefix}${linkColor}${file}${resetColor} [symbolic link -> ${targetPath}]`,
-      });
-    } else if (stats.isDirectory()) {
-      result.push({
-        name: file,
-        type: "directory",
-        display: `${linePrefix}${dirColor}${file}${resetColor}/`,
-      });
-      const newPrefix = isLast ? "    " : "│   ";
-      result.push(
-        ...getDirectoryStructure(
-          filePath,
-          options,
-          level + 1,
-          prefix + (options.simple ? newPrefix : "    ")
-        )
-      );
-    } else {
-      result.push({
-        name: file,
-        type: "file",
-        display: `${linePrefix}${file}`,
-      });
-    }
-  });
+      if (options.dirsOnly && !stats.isDirectory()) return;
+
+      if (stats.isSymbolicLink()) {
+        let targetPath;
+        try {
+          targetPath = fs.readlinkSync(filePath);
+        } catch (error) {
+          targetPath = "unresolved";
+        }
+
+        children.push({
+          name: file,
+          type: "symbolic link",
+          target: targetPath,
+        });
+      } else if (stats.isDirectory()) {
+        children.push({
+          name: file,
+          type: "directory",
+          children: getDirectoryStructure(filePath, options, maxDepth - 1),
+        });
+      } else {
+        children.push({
+          name: file,
+          type: "file",
+        });
+      }
+    });
+
+    result = result.concat(children);
+  }
 
   return result;
 }
@@ -327,7 +386,8 @@ function main() {
       );
     }
   } else if (options.csvOutput) {
-    output = convertToCSV(structure);
+    const flattenedStructure = flattenStructure(structure);
+    output = convertToCSV(flattenedStructure);
     if (options.csvOutput) {
       fs.writeFileSync(
         options.csvOutput.endsWith(".csv") ? options.csvOutput : options.csvOutput + ".csv",
@@ -335,10 +395,10 @@ function main() {
       );
     }
   } else if (options.rawOutput) {
-    output = structure.map((item) => item.display).join("\n");
+    output = formatStructure(structure, options);
     fs.writeFileSync(options.rawOutput, stripAnsiCodes(output));
   } else {
-    output = structure.map((item) => item.display).join("\n");
+    output = formatStructure(structure, options);
     console.log(output);
   }
 }
@@ -352,6 +412,8 @@ if (require.main === module) {
     getOptions,
     globToRegex,
     getDirectoryStructure,
+    formatStructure,
+    flattenStructure,
     convertToCSV,
     stripAnsiCodes,
   };
