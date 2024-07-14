@@ -9,9 +9,8 @@ fsvz is a lightweight, dependency-free command-line tool built with Node.js for 
 ## Features
 
 - **No External Dependencies**: Built purely with Node.js built-in modules.
-- **Customizable Output**: Choose between simple and fancy tree-like outputs. Fancy is default.
+- **Customizable Output**: Choose between simple and fancy tree-like console outputs, or export to JSON or CSV.
 - **Pattern Ignoring**: Ability to ignore files and directories based on a provided glob pattern.
-- **JSON & CSV Output**: Export the directory/file structure as JSON or CSV.
 
 ## Installation
 
@@ -34,6 +33,8 @@ To display the directory structure of the current directory, simply type:
 ```bash
 fsvz
 ```
+
+**NOTE**: For deeply nested hierarchies, it will take a while to display the entire structure. Although I've tested it with a few thousand files and directories, I have not tested it with extremely large directories. If you run into any issues, please let me know by opening an issue.
 
 ### Fancy and Simple Outputs to the CLI
 
