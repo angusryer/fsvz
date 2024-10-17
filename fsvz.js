@@ -2,133 +2,54 @@
 
 const fs = require("fs");
 const path = require("path");
+const mm = require("micromatch");
 
+// ANSI color codes
 const dirColor = "\x1b[34m"; // Blue
-const resetColor = "\x1b[0m"; // Reset to default terminal color
+const resetColor = "\x1b[0m"; // Reset
 const linkColor = "\x1b[36m"; // Cyan
 
 function printHelp() {
   const options = [
     {
       flag: "--simple, -s",
-      description:
-        "When outputting to the console, do so in a simple format using dashes (ascii lines is default).",
+      description: "Output in a simple format using dashes (default is ASCII lines).",
     },
-    { flag: "--dirs-only, -d", description: "Exclude files. Output directories only." },
+    { flag: "--dirs-only, -d", description: "Output directories only." },
     {
-      flag: "--ignore=PATTERN, -i PATTERN",
-      description: "Glob pattern to ignore files and/or directories.",
+      flag: "--ignore=PATTERNS, -i PATTERNS",
+      description: "Comma- or pipe-separated glob patterns to ignore files and/or directories.",
     },
     {
       flag: "--raw=FILENAME, -r FILENAME",
       description:
-        "Output to file instead of the console. The file will be overwritten if it already exists.",
+        "Output to file instead of the console. Overwrites existing file of the same name.",
     },
     {
       flag: "--json=FILENAME, -j FILENAME",
-      description: "Output in JSON format. You may only specify one of --json or --csv.",
+      description:
+        "Output in JSON format. Overwrites existing file of the same name. Cannot be used with --csv.",
     },
     {
       flag: "--csv=FILENAME, -c FILENAME",
-      description: "Output in CSV format. You may only specify one of --json or --csv.",
+      description:
+        "Output in CSV format. Overwrites existing file of the same name. Cannot be used with --json.",
     },
     { flag: "--help, -h", description: "Print this help message and exit." },
     { flag: "--version, -v", description: "Print the version and exit." },
   ];
 
-  const maxFlagLength = Math.max(...options.map((option) => option.flag.length));
-  console.log("Usage: fsviz [path] [options]");
-  options.forEach((option) => {
-    const padding = " ".repeat(maxFlagLength - option.flag.length + 2); // 2 spaces of padding for your eyes to comfortable
-    console.log(`  ${option.flag}${padding}${option.description}`);
+  const maxFlagLength = Math.max(...options.map((opt) => opt.flag.length));
+  console.log("Usage: fsvz [path] [options]\n");
+  options.forEach((opt) => {
+    const padding = " ".repeat(maxFlagLength - opt.flag.length + 2);
+    console.log(`  ${opt.flag}${padding}${opt.description}`);
   });
 }
 
-function globToRegex(globString) {
-  let _regexWip = "";
-  const parts = globString.split("|");
-
-  const regexParts = parts.map((part, index) => {
-    let regexPart = "";
-
-    if (index > 0) {
-      _regexWip += "|"; // Add an OR operator between each pattern part
-    }
-
-    for (let characterIndex = 0; characterIndex < part.length; characterIndex++) {
-      const previousCharacter = part[characterIndex - 1];
-      const currentCharacter = part[characterIndex];
-      const nextCharacter = part[characterIndex + 1];
-
-      switch (currentCharacter) {
-        case "/":
-          // If the previous character is a '*' and the one before that is also a '*', then skip the escape because
-          // it's a globstar that has already been handled below.
-          if (previousCharacter === "*" && part[characterIndex - 2] === "*") {
-            break;
-          }
-        case "$":
-        case "^":
-        case "+":
-        case ".":
-        case "(":
-        case ")":
-        case "=":
-        case "!":
-          regexPart += "\\" + currentCharacter; // in glob, these characters are treated as literals, so escape them
-          break;
-
-        case "?":
-          regexPart += "."; // . in regex is equivalent to ? in glob
-          break;
-
-        case "[":
-        case "]":
-          regexPart += currentCharacter; // Square brackets are treated as literals in both regex and glob
-          break;
-
-        case "{":
-          regexPart += "("; // { in glob is equivalent to ( in regex
-          break;
-
-        case "}":
-          regexPart += ")"; // } in glob is equivalent to ) in regex
-          break;
-
-        case ",":
-          regexPart += "|"; // , in glob is equivalent to | in regex
-          break;
-
-        case "*":
-          if (nextCharacter === "*") {
-            // we have a globstar!
-            regexPart += "(?:[^/]+/)*"; // Match zero or more directories with a trailing slash
-            characterIndex += 1; // Skip the next '*'
-          } else {
-            // this is a single star, so match any character except '/'
-            regexPart += "[^/].*";
-          }
-          break;
-
-        default:
-          regexPart += currentCharacter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // Escape regex special characters as a fallback
-      }
-    }
-    return `^${regexPart}$`; // anchor the start and end of the string
-  });
-
-  _regexWip = regexParts.join("|"); // Combine the regex parts into a single regex
-  try {
-    return new RegExp(_regexWip);
-  } catch (error) {
-    console.error(`Invalid pattern. Provided glob results in an ${error.message}`);
-    process.exit(1);
-  }
-}
-
-// Helper function to get the next argument if it exists
 function getNextArg(index, args) {
-  return args?.[index + 1] && !args?.[index + 1]?.startsWith("-") ? args?.[index + 1] : null;
+  const nextArg = args[index + 1];
+  return nextArg && !nextArg.startsWith("-") ? nextArg : null;
 }
 
 function getOptions(args) {
@@ -138,17 +59,17 @@ function getOptions(args) {
     rawOutput: undefined,
     jsonOutput: undefined,
     csvOutput: undefined,
-    ignorePattern: undefined,
+    ignorePatterns: [],
     path: ".",
   };
 
   // Check if the first argument is a path
   if (args.length > 0 && !args[0].startsWith("-")) {
     options.path = args[0];
-    args = args.slice(1); // Remove the path from the arguments array
+    args = args.slice(1);
   }
 
-  // Iterate through the arguments and set the options accordingly
+  // Parse arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     switch (arg) {
@@ -163,46 +84,76 @@ function getOptions(args) {
       case "--raw":
       case "-r":
         options.rawOutput = getNextArg(i, args);
-        if (options.rawOutput) {
-          i++; // Skip the next argument since it is consumed as a value
-        } else {
+        if (!options.rawOutput) {
           console.error("Please provide a filename for the raw output.");
           process.exit(1);
         }
+        i++;
         break;
       case "--json":
       case "-j":
         options.jsonOutput = getNextArg(i, args);
-        if (options.jsonOutput) {
-          i++; // Skip the next argument since it is consumed as an input value to this one
-        } else {
+        if (!options.jsonOutput) {
           console.error("Please provide a filename for the JSON output.");
           process.exit(1);
         }
+        i++;
         break;
       case "--csv":
       case "-c":
         options.csvOutput = getNextArg(i, args);
-        if (options.csvOutput) {
-          i++; // Skip the next argument since it is consumed as an input value to this one
-        } else {
+        if (!options.csvOutput) {
           console.error("Please provide a filename for the CSV output.");
           process.exit(1);
         }
+        i++;
+        break;
+      case "--ignore":
+      case "-i":
+        const patternArg = getNextArg(i, args);
+        if (!patternArg) {
+          console.error("Please provide a pattern to ignore.");
+          process.exit(1);
+        }
+        const patterns = patternArg
+          .split(/[,|]/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+        for (const pattern of patterns) {
+          try {
+            mm.makeRe(pattern, { failglob: true, strictBrackets: true }); // If it can't be made into a regex, then it should fail
+            options.ignorePatterns.push(pattern);
+          } catch (error) {
+            console.error(`Invalid pattern: ${error.message}`);
+            process.exit(1);
+          }
+        }
+        i++;
         break;
       default:
         if (arg.startsWith("--ignore=")) {
-          const pattern = arg.split("=")[1];
-          options.ignorePattern = globToRegex(pattern);
-        } else if (arg === "-i") {
-          const pattern = getNextArg(i, args);
-          if (pattern) {
-            options.ignorePattern = globToRegex(pattern);
-            i++;
+          const pattern = arg.substring("--ignore=".length);
+          if (!pattern) {
+            console.error("Please provide a pattern to ignore.");
+            process.exit(1);
           }
+          const patterns = pattern
+            .split(/[,|]/)
+            .map((p) => p.trim())
+            .filter(Boolean);
+          mm.makeRe(pattern, { failglob: true, strictBrackets: true }); // If it can't be made into a regex, then it should fail
+          options.ignorePatterns.push(...patterns);
+        } else {
+          console.error(`Unknown option: ${arg}`);
+          process.exit(1);
         }
-        break;
     }
+  }
+
+  // Ensure mutually exclusive options are not both used
+  if (options.jsonOutput && options.csvOutput) {
+    console.error("You may only specify one of --json or --csv.");
+    process.exit(1);
   }
 
   return options;
@@ -213,53 +164,13 @@ function stripAnsiCodes(str) {
 }
 
 function convertToCSV(data) {
-  const fields = ["name", "type", "target"];
+  const fields = ["path", "name", "type", "target"];
   const replacer = (_key, value) => (value === null || value === undefined ? "" : value);
   const csv = data.map((row) =>
     fields.map((fieldName) => JSON.stringify(row[fieldName], replacer)).join(",")
   );
   csv.unshift(fields.join(","));
   return csv.join("\n");
-}
-
-function formatStructure(structure, options) {
-  const formatItem = (item, prefix) => {
-    let linePrefix = options.simple ? "- " : prefix;
-    switch (item.type) {
-      case "directory":
-        return `${linePrefix}${dirColor}${item.name}${resetColor}/`;
-      case "file":
-        return `${linePrefix}${item.name}`;
-      case "symbolic link":
-        return `${linePrefix}${linkColor}${item.name}${resetColor} [symbolic link -> ${item.target}]`;
-      default:
-        return `${linePrefix}${item.name}`;
-    }
-  };
-
-  let result = [];
-  let stack = [{ items: structure, prefix: "", level: 0 }];
-
-  while (stack.length > 0) {
-    let { items, prefix, level } = stack.pop();
-
-    items.forEach((item, index) => {
-      const isLast = index === items.length - 1;
-      const lastSymbol = isLast ? "└── " : "├── ";
-      result.push(formatItem(item, prefix + (options.simple ? "- " : lastSymbol)));
-
-      if (item.type === "directory" && item.children) {
-        const newPrefix = isLast ? "    " : "│   ";
-        stack.push({
-          items: item.children,
-          prefix: prefix + newPrefix,
-          level: level + 1,
-        });
-      }
-    });
-  }
-
-  return result.join("\n");
 }
 
 function flattenStructure(structure) {
@@ -270,85 +181,169 @@ function flattenStructure(structure) {
     let item = stack.pop();
     result.push(item);
     if (item.type === "directory" && item.children) {
-      stack.push(...item.children);
+      stack.push(
+        ...item.children.map((child) => ({ ...child, path: path.join(item.path, child.name) }))
+      );
     }
   }
 
   return result;
 }
 
-function getDirectoryStructure(rootDir, options, maxDepth = 10) {
+function getIsLast(items, i) {
+  return items.length === 1 ? true : i === items.length - 1;
+}
+
+function formatStructure(items, options) {
   let result = [];
-  let stack = [{ dir: rootDir, level: 0 }];
-  let visitedDirs = new Set();
+  let stack = [];
+
+  // Initialize the stack with the root level items in reverse order
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    const isLast = getIsLast(items, i); // Determines if the item is the last among siblings
+    stack.push({
+      item,
+      prefixes: [],
+      isLast: isLast,
+    });
+  }
 
   while (stack.length > 0) {
-    let { dir, level } = stack.pop();
+    const { item, prefixes, isLast } = stack.pop();
 
-    if (visitedDirs.has(dir)) {
-      continue;
+    // Build the line prefix
+    let linePrefix = "";
+    for (const prefix of prefixes) {
+      if (options.simple) {
+        linePrefix += "-";
+      } else {
+        linePrefix += prefix ? "│  " : "   ";
+      }
     }
-    visitedDirs.add(dir);
 
-    if (level > maxDepth) {
-      continue;
+    let prefixType = options.simple ? "- " : isLast ? "└─ " : "├─ ";
+    linePrefix += prefixType;
+
+    let line;
+    switch (item.type) {
+      case "directory":
+        line = `${linePrefix}${dirColor}${item.name}/${resetColor}`;
+        break;
+      case "file":
+        line = `${linePrefix}${item.name}`;
+        break;
+      case "symbolic link":
+        line = `${linePrefix}${item.name} ${linkColor}[link -> ${item.target}]${resetColor}`;
+        break;
+      default:
+        line = `${linePrefix}${item.name}`;
     }
 
-    let files;
+    result.push(line);
+
+    if (item.type === "directory" && item.children && item.children.length > 0) {
+      const children = item.children;
+
+      // Process children in reverse order to maintain correct output order
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        const childIsLast = getIsLast(children, i);
+        stack.push({
+          item: child,
+          prefixes: [...prefixes, !isLast],
+          isLast: childIsLast,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+function getDirectoryStructure(rootDir, options) {
+  let result = [];
+  let stack = [{ dir: rootDir, parent: null }];
+
+  while (stack.length > 0) {
+    const { dir, parent } = stack.pop();
+    let entries;
+
     try {
       if (!fs.existsSync(dir)) {
         continue;
       }
-      files = fs.readdirSync(dir).sort();
+      
+      entries = fs.readdirSync(dir).sort();
     } catch (error) {
       console.error(`Error reading directory ${dir}: ${error.message}`);
       continue;
     }
 
-    let children = [];
-    files.forEach((file) => {
-      if (file === "." || file === ".." || options.ignorePattern?.test(file)) return;
+    let dirItems = [];
+    let fileItems = [];
 
-      const filePath = path.join(dir, file);
+    entries.forEach((entry) => {
+      if (entry === "." || entry === "..") return;
+
+      const entryPath = path.join(dir, entry);
+      const relativePath = path.relative(options?.path ?? rootDir, entryPath);
+
+      if (
+        options.ignorePatterns &&
+        options.ignorePatterns.length > 0 &&
+        mm.isMatch(relativePath, options.ignorePatterns, { matchBase: true })
+      ) {
+        return;
+      }
+
       let stats;
 
       try {
-        stats = fs.lstatSync(filePath);
+        stats = fs.lstatSync(entryPath);
       } catch (error) {
-        console.error(`Error reading file ${filePath}: ${error.message}`);
+        console.error(`Error reading file ${entryPath}: ${error.message}`);
         return;
       }
 
       if (options.dirsOnly && !stats.isDirectory()) return;
 
+      let item = {
+        name: entry,
+        path: entryPath,
+      };
+
       if (stats.isSymbolicLink()) {
         let targetPath;
         try {
-          targetPath = fs.readlinkSync(filePath);
+          targetPath = fs.readlinkSync(entryPath);
         } catch (error) {
           targetPath = "unresolved";
         }
-
-        children.push({
-          name: file,
-          type: "symbolic link",
-          target: targetPath,
-        });
+        item.type = "symbolic link";
+        item.target = targetPath;
+        fileItems.push(item); // Treat symbolic links as files
       } else if (stats.isDirectory()) {
-        children.push({
-          name: file,
-          type: "directory",
-          children: getDirectoryStructure(filePath, options, maxDepth - 1),
-        });
+        item.type = "directory";
+        item.children = [];
+        dirItems.push(item);
+        // Push the directory onto the stack to process its contents later
+        stack.push({ dir: entryPath, parent: item });
       } else {
-        children.push({
-          name: file,
-          type: "file",
-        });
+        item.type = "file";
+        fileItems.push(item);
       }
     });
 
-    result = result.concat(children);
+    // Combine directories and files, directories first
+    const items = dirItems.concat(fileItems);
+
+    if (parent) {
+      parent.children = parent.children || [];
+      parent.children.push(...items);
+    } else {
+      result.push(...items);
+    }
   }
 
   return result;
@@ -373,44 +368,40 @@ function main() {
   }
 
   const options = getOptions(args);
-
   const structure = getDirectoryStructure(options.path, options);
   let output;
 
   if (options.jsonOutput) {
     output = JSON.stringify(structure, null, 2);
-    if (options.jsonOutput) {
-      fs.writeFileSync(
-        options.jsonOutput.endsWith(".json") ? options.jsonOutput : options.jsonOutput + ".json",
-        stripAnsiCodes(output)
-      );
-    }
+    options.jsonOutput = options.jsonOutput.endsWith(".json")
+      ? options.jsonOutput
+      : options.jsonOutput + ".json";
+    fs.writeFileSync(options.jsonOutput, output);
   } else if (options.csvOutput) {
     const flattenedStructure = flattenStructure(structure);
     output = convertToCSV(flattenedStructure);
-    if (options.csvOutput) {
-      fs.writeFileSync(
-        options.csvOutput.endsWith(".csv") ? options.csvOutput : options.csvOutput + ".csv",
-        stripAnsiCodes(output)
-      );
-    }
+    options.csvOutput = options.csvOutput.endsWith(".csv")
+      ? options.csvOutput
+      : options.csvOutput + ".csv";
+    fs.writeFileSync(options.csvOutput, output);
   } else if (options.rawOutput) {
-    output = formatStructure(structure, options);
+    const lines = formatStructure(structure, options);
+    output = lines.join("\n");
     fs.writeFileSync(options.rawOutput, stripAnsiCodes(output));
   } else {
-    output = formatStructure(structure, options);
+    const lines = formatStructure(structure, options);
+    output = lines.join("\n");
     console.log(output);
   }
 }
 
-// Run the main function if this file is executed directly
 if (require.main === module) {
   main();
 } else {
   module.exports = {
     main,
     getOptions,
-    globToRegex,
+    globToRegex: mm.makeRe,
     getDirectoryStructure,
     formatStructure,
     flattenStructure,

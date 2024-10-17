@@ -1,3 +1,5 @@
+const micromatch = require("micromatch");
+
 describe("globToRegex", () => {
   const { globToRegex } = require("./fsvz");
 
@@ -86,17 +88,25 @@ describe("getOptions", () => {
     expect(options.simple).toBe(true);
     expect(options.dirsOnly).toBe(true);
   });
-
   test("parses ignore pattern", () => {
     const options = getOptions(["-i", "*.js"]);
-    expect(options.ignorePattern.test("test.js")).toBe(true);
-    expect(options.ignorePattern.test("test.txt")).toBe(false);
+    expect(options.ignorePatterns).toEqual(["*.js"]);
+    expect(micromatch.isMatch("test.js", options.ignorePatterns)).toBe(true);
+    expect(micromatch.isMatch("test.txt", options.ignorePatterns)).toBe(false);
+  });
+
+  test("parses multiple ignore patterns", () => {
+    const options = getOptions(["-i", "*.js,node_modules"]);
+    expect(options.ignorePatterns).toEqual(["*.js", "node_modules"]);
+    expect(micromatch.isMatch("test.js", options.ignorePatterns)).toBe(true);
+    expect(micromatch.isMatch("test.txt", options.ignorePatterns)).toBe(false);
   });
 
   test("parses ignore pattern with equal sign", () => {
     const options = getOptions(["--ignore=*.js"]);
-    expect(options.ignorePattern.test("test.js")).toBe(true);
-    expect(options.ignorePattern.test("test.txt")).toBe(false);
+    expect(options.ignorePatterns).toEqual(["*.js"]);
+    expect(micromatch.isMatch("test.js", options.ignorePatterns)).toBe(true);
+    expect(micromatch.isMatch("test.txt", options.ignorePatterns)).toBe(false);
   });
 
   test("handles invalid pattern gracefully", () => {
@@ -127,6 +137,10 @@ describe("getDirectoryStructure", () => {
   const { getDirectoryStructure } = require("./fsvz");
 
   beforeAll(() => {
+    // Clean up if the directory already exists
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
     // Create a temporary directory structure
     fs.mkdirSync(path.join(tmpDir, "dir"), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, "dir", "file1.txt"), "");
@@ -139,7 +153,7 @@ describe("getDirectoryStructure", () => {
 
   afterAll(() => {
     // Remove the temporary directory
-    fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   test("returns an empty array for an empty directory", () => {
@@ -150,34 +164,43 @@ describe("getDirectoryStructure", () => {
   });
 
   test("returns the correct structure for a directory with files and subdirectories", () => {
-    const structure = getDirectoryStructure(path.join(tmpDir, "dir"), {});
+    const dirPath = path.join(tmpDir, "dir");
+    const options = { path: dirPath };
+
+    const structure = getDirectoryStructure(dirPath, options);
 
     const expectedStructure = [
       {
-        name: "file1.txt",
-        type: "file",
-      },
-      {
-        name: "file2.txt",
-        type: "file",
-      },
-      {
         name: "subdir",
+        path: path.join(dirPath, "subdir"),
         type: "directory",
         children: [],
       },
       {
         name: "subdir2",
+        path: path.join(dirPath, "subdir2"),
         type: "directory",
         children: [
           {
             name: "file3.txt",
+            path: path.join(dirPath, "subdir2", "file3.txt"),
             type: "file",
           },
         ],
       },
       {
+        name: "file1.txt",
+        path: path.join(dirPath, "file1.txt"),
+        type: "file",
+      },
+      {
+        name: "file2.txt",
+        path: path.join(dirPath, "file2.txt"),
+        type: "file",
+      },
+      {
         name: "symlink",
+        path: path.join(dirPath, "symlink"),
         type: "symbolic link",
         target: path.join(tmpDir, "target"),
       },
