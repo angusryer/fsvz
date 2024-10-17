@@ -4,7 +4,7 @@ fsvz is a lightweight command-line tool built with Node.js for generating and di
 
 ## TODOs
 
-	•	Add a screenshot or a GIF of it working in the README.
+- Add a screenshot or a GIF of it working in the README.
 
 ## Features
 
