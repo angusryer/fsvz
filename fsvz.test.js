@@ -1,3 +1,5 @@
+const micromatch = require("micromatch");
+
 describe("globToRegex", () => {
   const { globToRegex } = require("./fsvz");
 
@@ -86,17 +88,25 @@ describe("getOptions", () => {
     expect(options.simple).toBe(true);
     expect(options.dirsOnly).toBe(true);
   });
-
   test("parses ignore pattern", () => {
     const options = getOptions(["-i", "*.js"]);
-    expect(options.ignorePattern.test("test.js")).toBe(true);
-    expect(options.ignorePattern.test("test.txt")).toBe(false);
+    expect(options.ignorePatterns).toEqual(["*.js"]);
+    expect(micromatch.isMatch("test.js", options.ignorePatterns)).toBe(true);
+    expect(micromatch.isMatch("test.txt", options.ignorePatterns)).toBe(false);
+  });
+
+  test("parses multiple ignore patterns", () => {
+    const options = getOptions(["-i", "*.js,node_modules"]);
+    expect(options.ignorePatterns).toEqual(["*.js", "node_modules"]);
+    expect(micromatch.isMatch("test.js", options.ignorePatterns)).toBe(true);
+    expect(micromatch.isMatch("test.txt", options.ignorePatterns)).toBe(false);
   });
 
   test("parses ignore pattern with equal sign", () => {
     const options = getOptions(["--ignore=*.js"]);
-    expect(options.ignorePattern.test("test.js")).toBe(true);
-    expect(options.ignorePattern.test("test.txt")).toBe(false);
+    expect(options.ignorePatterns).toEqual(["*.js"]);
+    expect(micromatch.isMatch("test.js", options.ignorePatterns)).toBe(true);
+    expect(micromatch.isMatch("test.txt", options.ignorePatterns)).toBe(false);
   });
 
   test("handles invalid pattern gracefully", () => {
@@ -155,7 +165,9 @@ describe("getDirectoryStructure", () => {
 
   test("returns the correct structure for a directory with files and subdirectories", () => {
     const dirPath = path.join(tmpDir, "dir");
-    const structure = getDirectoryStructure(path.join(tmpDir, "dir"), {});
+    const options = { path: dirPath };
+
+    const structure = getDirectoryStructure(dirPath, options);
 
     const expectedStructure = [
       {
@@ -200,6 +212,7 @@ describe("getDirectoryStructure", () => {
   test("excludes files when 'dirsOnly' option is true", () => {
     const options = { dirsOnly: true };
     const structure = getDirectoryStructure(path.join(tmpDir, "dir"), options);
+    console.log("DATA", structure);
     const expectedStructure = [
       { name: "subdir", type: "directory" },
       { name: "subdir2", type: "directory" },

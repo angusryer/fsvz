@@ -17,20 +17,23 @@ function printHelp() {
     },
     { flag: "--dirs-only, -d", description: "Output directories only." },
     {
-      flag: "--ignore=PATTERN, -i PATTERN",
-      description: "Glob pattern to ignore files and/or directories.",
+      flag: "--ignore=PATTERNS, -i PATTERNS",
+      description: "Comma- or pipe-separated glob patterns to ignore files and/or directories.",
     },
     {
       flag: "--raw=FILENAME, -r FILENAME",
-      description: "Output to file instead of the console. Overwrites existing file.",
+      description:
+        "Output to file instead of the console. Overwrites existing file of the same name.",
     },
     {
       flag: "--json=FILENAME, -j FILENAME",
-      description: "Output in JSON format. Cannot be used with --csv.",
+      description:
+        "Output in JSON format. Overwrites existing file of the same name. Cannot be used with --csv.",
     },
     {
       flag: "--csv=FILENAME, -c FILENAME",
-      description: "Output in CSV format. Cannot be used with --json.",
+      description:
+        "Output in CSV format. Overwrites existing file of the same name. Cannot be used with --json.",
     },
     { flag: "--help, -h", description: "Print this help message and exit." },
     { flag: "--version, -v", description: "Print the version and exit." },
@@ -56,7 +59,7 @@ function getOptions(args) {
     rawOutput: undefined,
     jsonOutput: undefined,
     csvOutput: undefined,
-    ignorePattern: undefined,
+    ignorePatterns: [],
     path: ".",
   };
 
@@ -112,27 +115,34 @@ function getOptions(args) {
           console.error("Please provide a pattern to ignore.");
           process.exit(1);
         }
-        try {
-          options.ignorePattern = mm.makeRe(patternArg, { strictBrackets: true });
-        } catch (error) {
-          console.error(`Invalid pattern: ${error.message}`);
-          process.exit(1);
+        const patterns = patternArg
+          .split(/[,|]/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+        for (const pattern of patterns) {
+          try {
+            mm.makeRe(pattern, { failglob: true, strictBrackets: true }); // If it can't be made into a regex, then it should fail
+            options.ignorePatterns.push(pattern);
+          } catch (error) {
+            console.error(`Invalid pattern: ${error.message}`);
+            process.exit(1);
+          }
         }
         i++;
         break;
       default:
         if (arg.startsWith("--ignore=")) {
-          const pattern = arg.split("=")[1];
+          const pattern = arg.substring("--ignore=".length);
           if (!pattern) {
             console.error("Please provide a pattern to ignore.");
             process.exit(1);
           }
-          try {
-            options.ignorePattern = mm.makeRe(pattern, { strictBrackets: true });
-          } catch (error) {
-            console.error(`Invalid pattern: ${error.message}`);
-            process.exit(1);
-          }
+          const patterns = pattern
+            .split(/[,|]/)
+            .map((p) => p.trim())
+            .filter(Boolean);
+          mm.makeRe(pattern, { failglob: true, strictBrackets: true }); // If it can't be made into a regex, then it should fail
+          options.ignorePatterns.push(...patterns);
         } else {
           console.error(`Unknown option: ${arg}`);
           process.exit(1);
@@ -218,13 +228,13 @@ function formatStructure(items, options) {
     let line;
     switch (item.type) {
       case "directory":
-        line = `${linePrefix}${item.name}/`;
+        line = `${linePrefix}${dirColor}${item.name}/${resetColor}`;
         break;
       case "file":
         line = `${linePrefix}${item.name}`;
         break;
       case "symbolic link":
-        line = `${linePrefix}${item.name} [symlink -> ${item.target}]`;
+        line = `${linePrefix}${item.name} ${linkColor}[symlink -> ${item.target}]${resetColor}`;
         break;
       default:
         line = `${linePrefix}${item.name}`;
@@ -274,9 +284,19 @@ function getDirectoryStructure(rootDir, options) {
 
     entries.forEach((entry) => {
       if (entry === "." || entry === "..") return;
-      if (options?.ignorePattern?.test(entry)) return;
 
       const entryPath = path.join(dir, entry);
+      const relativePath = path.relative(options?.path ?? rootDir, entryPath);
+
+      // Check if the entry matches any of the ignore patterns
+      if (
+        options.ignorePatterns &&
+        options.ignorePatterns.length > 0 &&
+        mm.isMatch(relativePath, options.ignorePatterns)
+      ) {
+        return;
+      }
+
       let stats;
 
       try {
@@ -353,14 +373,14 @@ function main() {
 
   if (options.jsonOutput) {
     output = JSON.stringify(structure, null, 2);
-    options.jsonOutput = options.jsonOutput.endsWith("json")
+    options.jsonOutput = options.jsonOutput.endsWith(".json")
       ? options.jsonOutput
       : options.jsonOutput + ".json";
     fs.writeFileSync(options.jsonOutput, output);
   } else if (options.csvOutput) {
     const flattenedStructure = flattenStructure(structure);
     output = convertToCSV(flattenedStructure);
-    options.csvOutput = options.csvOutput.endsWith("csv")
+    options.csvOutput = options.csvOutput.endsWith(".csv")
       ? options.csvOutput
       : options.csvOutput + ".csv";
     fs.writeFileSync(options.csvOutput, output);
