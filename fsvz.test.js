@@ -212,7 +212,6 @@ describe("getDirectoryStructure", () => {
   test("excludes files when 'dirsOnly' option is true", () => {
     const options = { dirsOnly: true };
     const structure = getDirectoryStructure(path.join(tmpDir, "dir"), options);
-    console.log("DATA", structure);
     const expectedStructure = [
       { name: "subdir", type: "directory" },
       { name: "subdir2", type: "directory" },

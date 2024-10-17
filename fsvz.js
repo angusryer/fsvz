@@ -216,13 +216,13 @@ function formatStructure(items, options) {
     let linePrefix = "";
     for (const prefix of prefixes) {
       if (options.simple) {
-        linePrefix += "    ";
+        linePrefix += "-";
       } else {
-        linePrefix += prefix ? "│   " : "    ";
+        linePrefix += prefix ? "│  " : "   ";
       }
     }
 
-    let prefixType = options.simple ? "- " : isLast ? "└── " : "├── ";
+    let prefixType = options.simple ? "- " : isLast ? "└─ " : "├─ ";
     linePrefix += prefixType;
 
     let line;
@@ -234,7 +234,7 @@ function formatStructure(items, options) {
         line = `${linePrefix}${item.name}`;
         break;
       case "symbolic link":
-        line = `${linePrefix}${item.name} ${linkColor}[symlink -> ${item.target}]${resetColor}`;
+        line = `${linePrefix}${item.name} ${linkColor}[link -> ${item.target}]${resetColor}`;
         break;
       default:
         line = `${linePrefix}${item.name}`;
@@ -288,11 +288,10 @@ function getDirectoryStructure(rootDir, options) {
       const entryPath = path.join(dir, entry);
       const relativePath = path.relative(options?.path ?? rootDir, entryPath);
 
-      // Check if the entry matches any of the ignore patterns
       if (
         options.ignorePatterns &&
         options.ignorePatterns.length > 0 &&
-        mm.isMatch(relativePath, options.ignorePatterns)
+        mm.isMatch(relativePath, options.ignorePatterns, { matchBase: true })
       ) {
         return;
       }
