@@ -1,107 +1,115 @@
-# fsvz - Directory Structure CLI Tool
+# fsvz - Directory Structure Mapping and Visualization CLI Tool
 
-fsvz is a lightweight, dependency-free command-line tool built with Node.js for generating and displaying directory structures. It's designed to be simple and easy to use.
+fsvz is a lightweight command-line tool built with Node.js for generating and displaying directory structures. It’s designed to be simple, efficient, and easy to use.
 
 ## TODOs
 
-- add screenshot or a gif of it working in the README
+	•	Add a screenshot or a GIF of it working in the README.
 
 ## Features
 
-- **No External Dependencies**: Built purely with Node.js built-in modules.
-- **Customizable Output**: Choose between simple and fancy tree-like console outputs, or export to JSON or CSV.
-- **Pattern Ignoring**: Ability to ignore files and directories based on a provided glob pattern.
+- Efficient Directory Traversal: Quickly generate the directory structure of large projects.
+- Customizable Output:
+  - Choose between simple (-s) and fancy tree-like console outputs.
+  - Export the directory structure to JSON (--json) or CSV (--csv) formats.
+- Pattern Ignoring: Ignore files and directories based on glob patterns using the powerful micromatch library.
+- Directory-Only Mode: Option to display only directories using the --dirs-only or -d flag.
+- Symbolic Links Handling: Recognizes and displays symbolic links.
 
 ## Installation
 
 You can install fsvz globally using npm by running the following command:
 
-```bash
-npm install -g fsvz
-```
+```npm install -g fsvz```
 
-This allows you to use the `fsvz` command from anywhere on your system.
+This allows you to use the fsvz command from anywhere on your system.
 
 ## Usage
 
-After installation, you can use the `fsvz` command in your terminal. Here are some ways to use this tool:
+After installation, you can use the fsvz command in your terminal. Here are some ways to use this tool:
 
 ### Basic Usage
 
 To display the directory structure of the current directory, simply type:
 
-```bash
-fsvz
-```
+```fsvz```
 
-**NOTE**: For deeply nested hierarchies, it will take a while to display the entire structure. Although I've tested it with a few thousand files and directories, I have not tested it with extremely large directories. If you run into any issues, please let me know by opening an issue.
+*NOTE:* For deeply nested hierarchies, it may take some time to display the entire structure. Although it’s optimized for performance, extremely large directories may still take longer to process. If you run into any issues, please let me know by opening an issue.
 
 ### Fancy and Simple Outputs to the CLI
 
-For an output that uses dashes instead of an ASCII tree-like structure, use the `--simple` or `-s` option:
+By default, fsvz outputs a fancy tree-like structure using ASCII characters. For a simpler output that uses dashes, use the --simple or -s option:
 
-```bash
+```
 fsvz --simple
+fsvz -s
 ```
 
-### Output to JSON or CSV, or to a File in "raw" format
+### Output to JSON or CSV, or to a File in “raw” Format
 
-To output the directory structure as JSON or CSV, use the `--json` or `--csv` options:
+To output the directory structure as JSON or CSV, use the --json or --csv options:
 
-```bash
-fsvz --json mytree.json # outputs the tree structure to a JSON file. You can also use the -j shorthand.
-fsvz --csv mytree.csv # file extension is optional and automatically added if not provided
+```
+fsvz --json mytree.json   # Outputs the tree structure to a JSON file. You can also use the -j shorthand.
+fsvz --csv mytree.csv     # Outputs the tree structure to a CSV file. You can also use the -c shorthand.
 ```
 
-To output the raw tree structure to a file, use the `--raw` option:
+To output the raw tree structure to a file (just as it would be displayed in the terminal), use the --raw option:
 
-```bash
-fszv --raw mytree.txt # outputs the raw tree structure to a file, just as it would be displayed in the terminal
+```
+fsvz --raw mytree.txt     # Outputs the raw tree structure to a text file.
 ```
 
 ### Ignoring Patterns
 
-To ignore files or directories that match glob patterns, use the `--ignore` or `-i` options. For example, to ignore all node_modules directories, you can run:
+To ignore files or directories that match glob patterns, use the --ignore or -i option. The pattern matching is powered by micromatch, which supports advanced glob patterns.
 
-```bash
-fsvz --ignore="node_modules"
+For example, to ignore all node_modules directories, you can run:
+
+```fsvz --ignore="node_modules"```
+
+To ignore all files with the .js extension, you can run:
+
+```fsvz -i "*.js"```
+
+To ignore multiple patterns, you can separate them with commas or pipes:
+
 ```
-
-Or to ignore all files with the `.js` extension, you can run:
-
-```bash
-fsvz -i "*.js"
-```
-
-Or to ignore multiple patterns, you can separate them with commas or standard glob pattern syntax:
-
-```bash
 fsvz --ignore="node_modules,*.js"
-fsvz -i "{node_modules|*.js}"
+fsvz -i "node_modules|*.js"
+```
+
+These patterns are applied recursively, so any matching files or directories at any level in the directory tree will be ignored.
+
+### Directory-Only Mode
+
+If you want to display only directories and exclude files from the output, use the --dirs-only or -d option:
+
+```fsvz --dirs-only```
+
+### Handling Symbolic Links
+
+fsvz recognizes symbolic links and displays them with an indicator
+
+Example output:
+
+```
+├─ src/
+│  ├─ index.js
+│  └─ utils.js
+├─ lib/ [link -> ../shared/lib]
+└─ README.md
 ```
 
 ### Help
 
 For more information on all available options, use the help command:
 
-```bash
+```
 fsvz --help
+fsvz -h
 ```
-
-## Example Output
-
-Here is an example of what the default output might look like:
-
-```
-fsvz-project
-├── node_modules
-│   └── (contents ignored)
-├── src
-│   ├── index.js
-│   └── utils.js
-├── package.json
-└── README.md
-```
+---
 
 ## Contributing
 
@@ -109,4 +117,4 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 
 ## License
 
-fsvz is [MIT licensed](./LICENSE).
+fsvz is MIT licensed.
