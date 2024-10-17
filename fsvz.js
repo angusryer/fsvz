@@ -273,6 +273,7 @@ function getDirectoryStructure(rootDir, options) {
       if (!fs.existsSync(dir)) {
         continue;
       }
+      
       entries = fs.readdirSync(dir).sort();
     } catch (error) {
       console.error(`Error reading directory ${dir}: ${error.message}`);
