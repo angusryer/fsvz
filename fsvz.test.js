@@ -127,6 +127,10 @@ describe("getDirectoryStructure", () => {
   const { getDirectoryStructure } = require("./fsvz");
 
   beforeAll(() => {
+    // Clean up if the directory already exists
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
     // Create a temporary directory structure
     fs.mkdirSync(path.join(tmpDir, "dir"), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, "dir", "file1.txt"), "");
@@ -139,7 +143,7 @@ describe("getDirectoryStructure", () => {
 
   afterAll(() => {
     // Remove the temporary directory
-    fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   test("returns an empty array for an empty directory", () => {
@@ -150,34 +154,41 @@ describe("getDirectoryStructure", () => {
   });
 
   test("returns the correct structure for a directory with files and subdirectories", () => {
+    const dirPath = path.join(tmpDir, "dir");
     const structure = getDirectoryStructure(path.join(tmpDir, "dir"), {});
 
     const expectedStructure = [
       {
-        name: "file1.txt",
-        type: "file",
-      },
-      {
-        name: "file2.txt",
-        type: "file",
-      },
-      {
         name: "subdir",
+        path: path.join(dirPath, "subdir"),
         type: "directory",
         children: [],
       },
       {
         name: "subdir2",
+        path: path.join(dirPath, "subdir2"),
         type: "directory",
         children: [
           {
             name: "file3.txt",
+            path: path.join(dirPath, "subdir2", "file3.txt"),
             type: "file",
           },
         ],
       },
       {
+        name: "file1.txt",
+        path: path.join(dirPath, "file1.txt"),
+        type: "file",
+      },
+      {
+        name: "file2.txt",
+        path: path.join(dirPath, "file2.txt"),
+        type: "file",
+      },
+      {
         name: "symlink",
+        path: path.join(dirPath, "symlink"),
         type: "symbolic link",
         target: path.join(tmpDir, "target"),
       },

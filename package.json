@@ -27,5 +27,8 @@
   "homepage": "https://github.com/angusryer/fsvz#readme",
   "devDependencies": {
     "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "micromatch": "^4.0.8"
   }
 }
